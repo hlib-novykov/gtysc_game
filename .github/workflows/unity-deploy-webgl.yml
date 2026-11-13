@@ -1,31 +1,44 @@
 name: Deploy Unity WebGL
 
 on:
-  push:
+  workflow_run:
+    workflows:
+      - Build and Test Unity WebGL
+    types:
+      - completed
     branches:
       - main
 
+permissions:
+  actions: read
+  contents: write
+
 jobs:
   deploy:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository (v4, with LFS)
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.workflow_run.head_sha }}
           lfs: true
-          
+
       - name: Download artifact from build
-        uses: dawidd6/action-download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
-          workflow: unity-build-webgl.yml
-          workflow_conclusion: success
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
           name: WebGL-Build
           path: build/WebGL
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: build/WebGL/*
+          publish_dir: build/WebGL
           publish_branch: gh-pages

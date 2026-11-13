@@ -1,9 +1,15 @@
 name: Build and Test Unity WebGL
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     branches:
       - main
+
+permissions:
+  contents: read
 
 jobs:
   test-and-build:
@@ -15,17 +21,17 @@ jobs:
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: true
-          
+
       - name: Checkout repository (v4, with LFS)
         uses: actions/checkout@v4
         with:
           lfs: true
 
       - name: Cache Unity Library
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
-          path: Library
-          key: Library-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          path: Src/gtysc/Library
+          key: Library-${{ runner.os }}-WebGL-${{ hashFiles('Src/gtysc/Assets/**', 'Src/gtysc/Packages/**', 'Src/gtysc/ProjectSettings/**') }}
 
       - name: Run Unity tests
         if: false # remove this line to run tests
@@ -35,6 +41,7 @@ jobs:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
+          projectPath: Src/gtysc
           githubToken: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Unity project
@@ -44,10 +51,14 @@ jobs:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
+          projectPath: Src/gtysc
           targetPlatform: WebGL
+          buildName: WebGL
+          buildsPath: build
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
           name: WebGL-Build
-          path: build/WebGL
+          path: build/WebGL/WebGL
+          if-no-files-found: error
